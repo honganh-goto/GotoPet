@@ -1,0 +1,227 @@
+@model ProfileViewModel
+@{
+    ViewData["Title"] = "My Profile";
+
+    bool HasError(string key) => ViewData.ModelState[key]?.Errors.Count > 0;
+    var hasPasswordErrors = HasError(nameof(Model.CurrentPassword))
+        || HasError(nameof(Model.NewPassword))
+        || HasError(nameof(Model.ConfirmNewPassword));
+    var hasProfileErrors = !ViewData.ModelState.IsValid && !hasPasswordErrors;
+}
+
+<div class="section">
+    <div class="profile-head">
+        <div>
+            <h1 class="mb-0">My profile</h1>
+            <p class="muted mb-0">Signed in as <strong>@Model.Email</strong></p>
+        </div>
+        <div class="profile-actions">
+            <button type="button" class="btn btn-primary" data-dialog-open="edit-profile-dialog">Edit profile</button>
+            <button type="button" class="btn btn-secondary" data-dialog-open="change-password-dialog">Change password</button>
+        </div>
+    </div>
+
+    <div class="stat-grid mt-3">
+        <div class="stat-card">
+            <span class="stat-text">
+                <span class="stat-value">@Model.TotalApplications</span>
+                <span class="stat-label">Applications</span>
+            </span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-text">
+                <span class="stat-value">@Model.PendingApplications</span>
+                <span class="stat-label">Pending</span>
+            </span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-text">
+                <span class="stat-value">@Model.CompletedAdoptions</span>
+                <span class="stat-label">Adoptions</span>
+            </span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-text">
+                <span class="stat-value">@Model.FavoritesCount</span>
+                <span class="stat-label">Favorites</span>
+            </span>
+        </div>
+    </div>
+</div>
+
+<div class="profile-layout">
+    <section class="section" aria-labelledby="recent-apps-heading">
+        <div class="row">
+            <h2 id="recent-apps-heading" class="mb-0">Recent applications</h2>
+            <a class="btn btn-secondary btn-sm" asp-controller="Adoptions" asp-action="Index">View all</a>
+        </div>
+        @if (Model.RecentApplications.Count > 0)
+        {
+            <ul class="vax-list mt-2">
+                @foreach (var a in Model.RecentApplications)
+                {
+                    <li>
+                        <a asp-controller="Pets" asp-action="Details" asp-route-id="@a.PetId"><strong>@a.Pet?.PetName</strong></a>
+                        <span class="badge badge-@a.Status.ToLower()">@a.Status</span>
+                        <span class="muted">applied @a.ApplicationDate.ToString("MMM d, yyyy")</span>
+                    </li>
+                }
+            </ul>
+        }
+        else
+        {
+            <p class="muted mt-2">No applications yet.</p>
+        }
+    </section>
+
+    <section class="section" aria-labelledby="recent-favs-heading">
+        <div class="row">
+            <h2 id="recent-favs-heading" class="mb-0">Recent favorites</h2>
+            <a class="btn btn-secondary btn-sm" asp-controller="Favorites" asp-action="Index">View all</a>
+        </div>
+        @if (Model.RecentFavorites.Count > 0)
+        {
+            <ul class="vax-list mt-2">
+                @foreach (var f in Model.RecentFavorites)
+                {
+                    <li>
+                        <a asp-controller="Pets" asp-action="Details" asp-route-id="@f.PetId"><strong>@f.Pet?.PetName</strong></a>
+                        <span class="muted">@f.Pet?.Breed &middot; added @f.DateAdded.ToString("MMM d, yyyy")</span>
+                    </li>
+                }
+            </ul>
+        }
+        else
+        {
+            <p class="muted mt-2">No favorites yet.</p>
+        }
+    </section>
+</div>
+
+<dialog id="edit-profile-dialog" class="modal modal-wide" data-dialog aria-labelledby="edit-profile-title">
+    <div class="modal-card">
+        <div class="modal-head">
+            <h2 id="edit-profile-title" class="modal-title">Edit profile</h2>
+            <button type="button" class="modal-close" data-dialog-close aria-label="Close">&times;</button>
+        </div>
+
+        <form asp-action="Profile" method="post">
+            <div asp-validation-summary="ModelOnly"></div>
+
+            <div class="form-grid">
+                <div class="form-group span-2">
+                    <label class="form-label" asp-for="FullName"></label>
+                    <input asp-for="FullName" autocomplete="name" />
+                    <span asp-validation-for="FullName"></span>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" asp-for="ContactNo"></label>
+                    <input asp-for="ContactNo" type="tel" autocomplete="tel" />
+                    <span asp-validation-for="ContactNo"></span>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" asp-for="HousingType"></label>
+                    <select asp-for="HousingType">
+                        <option>House</option>
+                        <option>Apartment</option>
+                        <option>Condo</option>
+                        <option>Farm</option>
+                    </select>
+                    <span asp-validation-for="HousingType"></span>
+                </div>
+
+                <div class="form-group span-2">
+                    <label class="form-label" asp-for="Address"></label>
+                    <input asp-for="Address" autocomplete="street-address" />
+                    <span asp-validation-for="Address"></span>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" asp-for="HasOtherPets"></label>
+                    <select asp-for="HasOtherPets">
+                        <option>No</option>
+                        <option>Yes</option>
+                    </select>
+                    <span asp-validation-for="HasOtherPets"></span>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" asp-for="HasChildren"></label>
+                    <select asp-for="HasChildren">
+                        <option>No</option>
+                        <option>Yes</option>
+                    </select>
+                    <span asp-validation-for="HasChildren"></span>
+                </div>
+
+                <div class="form-group span-2">
+                    <label class="form-label" asp-for="ExperienceLevel"></label>
+                    <select asp-for="ExperienceLevel">
+                        <option>First-time</option>
+                        <option>Experienced</option>
+                    </select>
+                    <span asp-validation-for="ExperienceLevel"></span>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" data-dialog-close>Cancel</button>
+                <button type="submit" class="btn btn-primary">Save changes</button>
+            </div>
+        </form>
+    </div>
+</dialog>
+
+<dialog id="change-password-dialog" class="modal" data-dialog aria-labelledby="change-password-title">
+    <div class="modal-card">
+        <div class="modal-head">
+            <h2 id="change-password-title" class="modal-title">Change password</h2>
+            <button type="button" class="modal-close" data-dialog-close aria-label="Close">&times;</button>
+        </div>
+
+        <form asp-action="Profile" method="post">
+            <input type="hidden" asp-for="FullName" />
+            <input type="hidden" asp-for="ContactNo" />
+            <input type="hidden" asp-for="Address" />
+            <input type="hidden" asp-for="HousingType" />
+            <input type="hidden" asp-for="HasOtherPets" />
+            <input type="hidden" asp-for="HasChildren" />
+            <input type="hidden" asp-for="ExperienceLevel" />
+
+            <div class="form-group">
+                <label class="form-label" asp-for="CurrentPassword"></label>
+                <input asp-for="CurrentPassword" autocomplete="current-password" />
+                <span asp-validation-for="CurrentPassword"></span>
+            </div>
+            <div class="form-group">
+                <label class="form-label" asp-for="NewPassword"></label>
+                <input asp-for="NewPassword" autocomplete="new-password" />
+                <span asp-validation-for="NewPassword"></span>
+            </div>
+            <div class="form-group">
+                <label class="form-label" asp-for="ConfirmNewPassword"></label>
+                <input asp-for="ConfirmNewPassword" autocomplete="new-password" />
+                <span asp-validation-for="ConfirmNewPassword"></span>
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" data-dialog-close>Cancel</button>
+                <button type="submit" class="btn btn-primary">Update password</button>
+            </div>
+        </form>
+    </div>
+</dialog>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    @if (hasPasswordErrors)
+    {
+        <script>document.getElementById('change-password-dialog').showModal();</script>
+    }
+    else if (hasProfileErrors)
+    {
+        <script>document.getElementById('edit-profile-dialog').showModal();</script>
+    }
+}

@@ -1,0 +1,63 @@
+@model List<GoToPet.Web.Models.ViewModels.AdminAdopterRow>
+@{
+    ViewData["Title"] = "Adopters";
+}
+
+<h1>Adopters</h1>
+
+<form method="get" class="filter-bar mt-3" role="search">
+    <label class="visually-hidden" for="search">Search</label>
+    <input type="search" id="search" name="search" placeholder="Name or email…" value="@ViewBag.Search" />
+    <button type="submit" class="btn btn-secondary">Search</button>
+</form>
+
+@if (Model.Count > 0)
+{
+    <div class="table-wrap mt-3">
+        <table class="data">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Contact</th>
+                    <th>Housing</th>
+                    <th>Adoptions</th>
+                    <th>Favorites</th>
+                    <th><span class="visually-hidden">Actions</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in Model)
+                {
+                    var a = row.Adopter;
+                    <tr>
+                        <td><strong>@a.FullName</strong></td>
+                        <td>@a.Email</td>
+                        <td>@a.ContactNo</td>
+                        <td>@a.HousingType</td>
+                        <td><span class="count-badge">@row.AdoptionCount</span></td>
+                        <td><span class="count-badge">@row.FavoriteCount</span></td>
+                        <td class="actions-cell">
+                            <a class="btn btn-secondary btn-sm" asp-area="Admin" asp-controller="Adopters"
+                               asp-action="Details" asp-route-id="@a.AdopterId">View</a>
+                            <a class="btn btn-secondary btn-sm" asp-area="Admin" asp-controller="Adopters"
+                               asp-action="Edit" asp-route-id="@a.AdopterId"
+                               data-modal-url="@Url.Action("Edit", "Adopters", new { area = "Admin", id = a.AdopterId })">Edit</a>
+                            <form asp-area="Admin" asp-controller="Adopters" asp-action="Delete"
+                                  asp-route-id="@a.AdopterId" method="post" class="inline-form"
+                                  data-confirm="Delete @a.FullName? This also removes their applications and favorites." data-confirm-title="Delete adopter?">
+                                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+else
+{
+    <div class="empty-state">
+        <p>No adopters found.</p>
+    </div>
+}

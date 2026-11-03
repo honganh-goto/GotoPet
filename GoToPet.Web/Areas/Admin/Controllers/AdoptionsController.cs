@@ -1,0 +1,145 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using GoToPet.Web.Data;
+using GoToPet.Web.Models.ViewModels;
+
+namespace GoToPet.Web.Areas.Admin.Controllers;
+
+[Area("Admin")]
+[Authorize(Roles = "Admin")]
+public class AdoptionsController : Controller
+{
+    private readonly GoToPetContext _db;
+
+    public AdoptionsController(GoToPetContext db) => _db = db;
+
+    public async Task<IActionResult> Index(string? status)
+    {
+        var baseQuery = _db.Adoptions
+            .Include(a => a.Pet)
+            .Include(a => a.Adopter);
+
+        var filtered = string.IsNullOrWhiteSpace(status)
+            ? baseQuery.AsQueryable()
+            : baseQuery.Where(a => a.Status == status);
+
+        var model = new AdminAdoptionListViewModel
+        {
+            Adoptions = await filtered
+                .OrderByDescending(a => a.ApplicationDate)
+                .ThenByDescending(a => a.AdoptionId)
+                .ToListAsync(),
+            Status = status,
+            TotalCount = await _db.Adoptions.CountAsync(),
+            PendingCount = await _db.Adoptions.CountAsync(a => a.Status == "Pending"),
+            CompletedCount = await _db.Adoptions.CountAsync(a => a.Status == "Completed"),
+            CancelledCount = await _db.Adoptions.CountAsync(a => a.Status == "Cancelled"),
+            ReturnedCount = await _db.Adoptions.CountAsync(a => a.Status == "Returned")
+        };
+
+        return View(model);
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdateFee(int id, decimal fee)
+    {
+        var adoption = await _db.Adoptions.FirstOrDefaultAsync(a => a.AdoptionId == id);
+        if (adoption is null) return NotFound();
+
+        if (adoption.Status != "Pending")
+        {
+            TempData["Error"] = "Only pending applications can have their fee edited.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        if (fee < 0)
+        {
+            TempData["Error"] = "Adoption fee cannot be negative.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        adoption.AdoptionFee = fee;
+        await _db.SaveChangesAsync();
+
+        TempData["Success"] = "Adoption fee updated.";
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var adoption = await _db.Adoptions.FirstOrDefaultAsync(a => a.AdoptionId == id);
+        if (adoption is null) return NotFound();
+
+        _db.Adoptions.Remove(adoption);
+        await _db.SaveChangesAsync();
+
+        TempData["Success"] = "Adoption record deleted.";
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> Approve(int id, decimal fee)
+    {
+        var adoption = await _db.Adoptions.Include(a => a.Pet).FirstOrDefaultAsync(a => a.AdoptionId == id);
+        if (adoption is null) return NotFound();
+
+        if (adoption.Status != "Pending")
+        {
+            TempData["Error"] = "Only pending applications can be approved.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        if (fee < 0)
+        {
+            TempData["Error"] = "Adoption fee cannot be negative.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        adoption.Status = "Completed";
+        adoption.AdoptionFee = fee;
+        await _db.SaveChangesAsync();
+
+        TempData["Success"] = $"Adoption completed — {adoption.Pet?.PetName} has a new home!";
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> Reject(int id)
+    {
+        var adoption = await _db.Adoptions.FirstOrDefaultAsync(a => a.AdoptionId == id);
+        if (adoption is null) return NotFound();
+
+        if (adoption.Status != "Pending")
+        {
+            TempData["Error"] = "Only pending applications can be rejected.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        adoption.Status = "Cancelled";
+        await _db.SaveChangesAsync();
+
+        TempData["Success"] = "Application rejected.";
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> Return(int id)
+    {
+        var adoption = await _db.Adoptions.FirstOrDefaultAsync(a => a.AdoptionId == id);
+        if (adoption is null) return NotFound();
+
+        if (adoption.Status != "Completed")
+        {
+            TempData["Error"] = "Only completed adoptions can be marked as returned.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        adoption.Status = "Returned";
+        await _db.SaveChangesAsync();
+
+        TempData["Success"] = "Adoption marked as returned. The pet is available again.";
+        return RedirectToAction(nameof(Index));
+    }
+}

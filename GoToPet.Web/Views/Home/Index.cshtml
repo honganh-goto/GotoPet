@@ -1,0 +1,89 @@
+@model GoToPet.Web.Models.ViewModels.HomeViewModel
+@{
+    ViewData["Title"] = "Home";
+}
+
+<section class="hero">
+    <div class="hero-copy">
+        <h1>Find your<br /> new best friend</h1>
+        <p>
+            Every pet at GoToPet has a story — and a clean bill of health, a known temperament,
+            and a team that wants to find them the right home. Maybe yours.
+        </p>
+        <div class="hero-actions">
+            <a class="btn btn-accent" asp-controller="Pets" asp-action="Index">Browse available pets</a>
+            @if (User.Identity?.IsAuthenticated != true)
+            {
+                <a class="btn btn-secondary" asp-controller="Account" asp-action="Register">Create an account</a>
+            }
+        </div>
+    </div>
+    <div class="hero-media" aria-hidden="true">
+        <figure class="hero-photo hero-photo--top">
+            <img src="~/uploads/luna.jpg" alt="" loading="eager" />
+        </figure>
+        <figure class="hero-photo hero-photo--bottom">
+            <img src="~/uploads/mochi.jpg" alt="" loading="eager" />
+        </figure>
+        <figure class="hero-photo hero-photo--main">
+            <img src="~/uploads/biscuit.jpg" alt="" loading="eager" />
+            <span class="hero-sticker"><img src="~/favicon.svg" alt="" /></span>
+        </figure>
+    </div>
+</section>
+
+@if (Model.PopularPets.Count > 0)
+{
+    <div class="section" role="region" aria-labelledby="popular-heading">
+        <div class="section-head">
+            <h2 id="popular-heading">Most loved right now</h2>
+            <a asp-controller="Pets" asp-action="Index">See all pets &rarr;</a>
+        </div>
+        <div class="pet-grid">
+            @foreach (var item in Model.PopularPets)
+            {
+                <partial name="_PetCard" model="item.Pet" view-data='new ViewDataDictionary(ViewData) { ["FavoriteCount"] = item.FavoriteCount }' />
+            }
+        </div>
+    </div>
+}
+
+@if (Model.NewArrivals.Count > 0)
+{
+    <div class="section" role="region" aria-labelledby="arrivals-heading">
+        <div class="section-head">
+            <h2 id="arrivals-heading">New arrivals</h2>
+        </div>
+        <div class="pet-grid">
+            @foreach (var pet in Model.NewArrivals)
+            {
+                <partial name="_PetCard" model="pet" />
+            }
+        </div>
+    </div>
+}
+
+@if (Model.PopularPets.Count == 0 && Model.NewArrivals.Count == 0 && Model.AvailablePets.Count > 0)
+{
+    <div class="section" role="region" aria-labelledby="available-heading">
+        <div class="section-head">
+            <h2 id="available-heading">Available for adoption</h2>
+            <a asp-controller="Pets" asp-action="Index">See all pets &rarr;</a>
+        </div>
+        <div class="pet-grid">
+            @foreach (var pet in Model.AvailablePets)
+            {
+                <partial name="_PetCard" model="pet" />
+            }
+        </div>
+    </div>
+}
+
+@if (Model.PopularPets.Count == 0 && Model.NewArrivals.Count == 0 && Model.AvailablePets.Count == 0)
+{
+    <div class="empty-state">
+        <div class="empty-glyph" aria-hidden="true"><partial name="_Glyph" model='"house"' /></div>
+        <h3>No pets here yet</h3>
+        <p>Check back soon — new friends arrive all the time.</p>
+    </div>
+}

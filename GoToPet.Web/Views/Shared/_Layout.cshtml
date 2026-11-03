@@ -1,0 +1,150 @@
+@{
+    var area = ViewContext.RouteData.Values["area"]?.ToString();
+    var isAdminArea = string.Equals(area, "Admin", StringComparison.OrdinalIgnoreCase);
+    var isAdmin = User.Identity?.IsAuthenticated == true && User.IsInRole("Admin");
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
+    string? AdminTab(string controller) => currentController == controller ? "active" : null;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@(ViewData["Title"] is string t ? $"{t} — GoToPet" : "GoToPet")</title>
+    <link rel="icon" href="~/favicon.svg" type="image/svg+xml" asp-append-version="true" />
+    <link rel="alternate icon" href="~/favicon.ico" sizes="any" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Shantell+Sans:wght@500;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body class="@(isAdminArea ? "admin" : null)">
+    <header class="site-header">
+        <nav class="container" aria-label="Main navigation">
+            <a class="brand" asp-area="" asp-controller="Home" asp-action="Index">
+                <span class="brand-mark" aria-hidden="true"><img src="~/favicon.svg" alt="" /></span> GoToPet
+            </a>
+            <ul class="nav-links">
+                @if (isAdminArea && isAdmin)
+                {
+                    <li><a asp-area="Admin" asp-controller="Dashboard" asp-action="Index" class="@AdminTab("Dashboard")">Dashboard</a></li>
+                    <li><a asp-area="Admin" asp-controller="Pets" asp-action="Index" class="@AdminTab("Pets")">Pets</a></li>
+                    <li><a asp-area="Admin" asp-controller="Adopters" asp-action="Index" class="@AdminTab("Adopters")">Adopters</a></li>
+                    <li><a asp-area="Admin" asp-controller="Adoptions" asp-action="Index" class="@AdminTab("Adoptions")">Adoptions</a></li>
+                    <li><a asp-area="Admin" asp-controller="VetVisits" asp-action="Index" class="@AdminTab("VetVisits")">Vet Visits</a></li>
+                    <li><a asp-area="Admin" asp-controller="Vaccinations" asp-action="Index" class="@AdminTab("Vaccinations")">Vaccinations</a></li>
+                    <li><a asp-area="Admin" asp-controller="Reports" asp-action="Index" class="@AdminTab("Reports")">Reports</a></li>
+                }
+                else if (!isAdminArea)
+                {
+                    <li><a asp-area="" asp-controller="Pets" asp-action="Index">Find a Pet</a></li>
+                    <li><a asp-area="" asp-controller="VetVisits" asp-action="Index">Vet Care</a></li>
+                }
+            </ul>
+            <div class="nav-spacer"></div>
+            <ul class="nav-links">
+                @if (User.Identity?.IsAuthenticated == true && User.IsInRole("Adopter"))
+                {
+                    <li class="nav-greeting">Hi,&nbsp;<strong>@User.Identity.Name</strong></li>
+                    <li><a asp-area="" asp-controller="Favorites" asp-action="Index">Favorites</a></li>
+                    <li><a asp-area="" asp-controller="Adoptions" asp-action="Index">My Applications</a></li>
+                    <li><a asp-area="" asp-controller="Account" asp-action="Profile">Profile</a></li>
+                    <li>
+                        <button type="button" class="nav-btn" data-logout-open>Log out</button>
+                    </li>
+                }
+                else if (User.Identity?.IsAuthenticated == true && User.IsInRole("Admin"))
+                {
+                    if (isAdminArea)
+                    {
+                        <li><a asp-area="" asp-controller="Home" asp-action="Index" target="_blank" rel="noopener">View site &#8599;</a></li>
+                    }
+                    else
+                    {
+                        <li><a asp-area="Admin" asp-controller="Dashboard" asp-action="Index">Admin Dashboard</a></li>
+                    }
+                    <li>
+                        <button type="button" class="nav-btn" data-logout-open>Log out</button>
+                    </li>
+                }
+                else
+                {
+                    <li><a asp-area="" asp-controller="Account" asp-action="Login">Log in</a></li>
+                    <li><a class="nav-cta" asp-area="" asp-controller="Account" asp-action="Register">Sign up</a></li>
+                }
+            </ul>
+        </nav>
+    </header>
+
+    <main role="main">
+        <div class="container">
+            @if (TempData["Success"] is string success)
+            {
+                <div class="flash flash-success" role="status">@success</div>
+            }
+            @if (TempData["Error"] is string error)
+            {
+                <div class="flash flash-error" role="alert">@error</div>
+            }
+            @RenderBody()
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="container">
+            <span>&copy; @DateTime.Now.Year GoToPet Adoption Center</span>
+            <span>Every pet deserves a home.</span>
+        </div>
+    </footer>
+
+    @if (User.Identity?.IsAuthenticated == true)
+    {
+        <dialog id="logout-dialog" class="modal" aria-labelledby="logout-title">
+            <div class="modal-card">
+                <h2 id="logout-title" class="modal-title">Log out?</h2>
+                <p class="modal-body">You'll be signed out and need to log in again to continue.</p>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" data-logout-cancel>Stay signed in</button>
+                    <form asp-area="" asp-controller="Account" asp-action="Logout" method="post">
+                        <button type="submit" class="btn btn-danger">Log out</button>
+                    </form>
+                </div>
+            </div>
+        </dialog>
+
+        <dialog id="confirm-dialog" class="modal" aria-labelledby="confirm-title">
+            <div class="modal-card">
+                <h2 id="confirm-title" class="modal-title" data-confirm-title>Are you sure?</h2>
+                <p class="modal-body" data-confirm-body>This action can't be undone.</p>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" data-confirm-cancel>Cancel</button>
+                    <button type="button" class="btn btn-danger" data-confirm-ok>Delete</button>
+                </div>
+            </div>
+        </dialog>
+    }
+
+    @if (isAdminArea && isAdmin)
+    {
+        <dialog id="admin-modal" class="modal modal-wide" aria-labelledby="admin-modal-title">
+            <div class="modal-card" data-modal-content>
+                <p class="modal-loading">Loading…</p>
+            </div>
+        </dialog>
+    }
+
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @if (User.Identity?.IsAuthenticated == true)
+    {
+        <script>
+            window.addEventListener('pageshow', function (event) {
+                if (event.persisted ||
+                    (window.performance && window.performance.getEntriesByType('navigation')[0]?.type === 'back_forward')) {
+                    window.location.reload();
+                }
+            });
+        </script>
+    }
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

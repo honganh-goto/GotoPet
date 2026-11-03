@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="GoToPet paw">
+  <!-- light paw silhouette -->
+  <g fill="#f4843f">
+    <ellipse cx="201" cy="170" rx="60" ry="74" transform="rotate(-12 201 170)"/>
+    <ellipse cx="311" cy="170" rx="60" ry="74" transform="rotate(12 311 170)"/>
+    <ellipse cx="116" cy="256" rx="52" ry="64" transform="rotate(-26 116 256)"/>
+    <ellipse cx="396" cy="256" rx="52" ry="64" transform="rotate(26 396 256)"/>
+    <path d="M256 236
+      C 222 196 160 198 147 258
+      C 139 306 190 364 256 420
+      C 322 364 373 306 365 258
+      C 352 198 290 196 256 236 Z"/>
+  </g>
+  <!-- dark pads -->
+  <g fill="#eb692b">
+    <ellipse cx="201" cy="172" rx="42" ry="54" transform="rotate(-12 201 172)"/>
+    <ellipse cx="311" cy="172" rx="42" ry="54" transform="rotate(12 311 172)"/>
+    <ellipse cx="121" cy="256" rx="36" ry="46" transform="rotate(-26 121 256)"/>
+    <ellipse cx="391" cy="256" rx="36" ry="46" transform="rotate(26 391 256)"/>
+    <path d="M256 262
+      C 230 228 178 230 168 278
+      C 161 316 206 362 256 402
+      C 306 362 351 316 344 278
+      C 334 230 282 228 256 262 Z"/>
+  </g>
+</svg>

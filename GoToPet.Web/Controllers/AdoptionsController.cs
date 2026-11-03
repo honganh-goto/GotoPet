@@ -1,0 +1,111 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using GoToPet.Web.Data;
+using GoToPet.Web.Models;
+using GoToPet.Web.Models.ViewModels;
+
+namespace GoToPet.Web.Controllers;
+
+[Authorize(Roles = "Adopter")]
+public class AdoptionsController : Controller
+{
+    private readonly GoToPetContext _db;
+
+    public AdoptionsController(GoToPetContext db) => _db = db;
+
+    public const decimal FlatAdoptionFee = 2000m;
+
+    private int AdopterId => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+    public async Task<IActionResult> Index(string? status)
+    {
+        var all = await _db.Adoptions
+            .Where(a => a.AdopterId == AdopterId)
+            .Include(a => a.Pet)
+            .OrderByDescending(a => a.ApplicationDate)
+            .ThenByDescending(a => a.AdoptionId)
+            .ToListAsync();
+
+        var effective = string.IsNullOrWhiteSpace(status) ? "All" : status;
+
+        var model = new MyAdoptionListViewModel
+        {
+            Status = effective,
+            TotalCount = all.Count,
+            PendingCount = all.Count(a => a.Status == "Pending"),
+            CompletedCount = all.Count(a => a.Status == "Completed"),
+            CancelledCount = all.Count(a => a.Status == "Cancelled"),
+            ReturnedCount = all.Count(a => a.Status == "Returned"),
+            Adoptions = effective == "All" ? all : all.Where(a => a.Status == effective).ToList()
+        };
+
+        return View(model);
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> Apply(int petId)
+    {
+        var pet = await _db.Pets.FindAsync(petId);
+        if (pet is null) return NotFound();
+
+        if (pet.Status != "Available")
+        {
+            TempData["Error"] = "This pet is no longer available for adoption.";
+            return RedirectToAction("Details", "Pets", new { id = petId });
+        }
+
+        var alreadyApplied = await _db.Adoptions.AnyAsync(a =>
+            a.AdopterId == AdopterId && a.PetId == petId && a.Status == "Pending");
+
+        if (alreadyApplied)
+        {
+            TempData["Error"] = "You already have a pending application for this pet.";
+            return RedirectToAction("Details", "Pets", new { id = petId });
+        }
+
+        _db.Adoptions.Add(new Adoption
+        {
+            PetId = petId,
+            AdopterId = AdopterId,
+            ApplicationDate = DateOnly.FromDateTime(DateTime.Today),
+            AdoptionFee = FlatAdoptionFee,
+            ContractSigned = "No",
+            Status = "Pending"
+        });
+
+        try
+        {
+            await _db.SaveChangesAsync();
+            TempData["Success"] = $"Application submitted for {pet.PetName}! We'll review it shortly.";
+        }
+        catch (DbUpdateException)
+        {
+            TempData["Error"] = "This pet is no longer available for adoption.";
+        }
+
+        return RedirectToAction("Details", "Pets", new { id = petId });
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> Cancel(int id)
+    {
+        var adoption = await _db.Adoptions
+            .FirstOrDefaultAsync(a => a.AdoptionId == id && a.AdopterId == AdopterId);
+
+        if (adoption is null) return NotFound();
+
+        if (adoption.Status != "Pending")
+        {
+            TempData["Error"] = "Only pending applications can be cancelled.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        adoption.Status = "Cancelled";
+        await _db.SaveChangesAsync();
+
+        TempData["Success"] = "Application cancelled.";
+        return RedirectToAction(nameof(Index));
+    }
+}

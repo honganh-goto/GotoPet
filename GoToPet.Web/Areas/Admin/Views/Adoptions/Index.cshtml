@@ -1,0 +1,109 @@
+@model AdminAdoptionListViewModel
+@{
+    ViewData["Title"] = "Adoptions";
+    var tabs = new (string Key, string Label, int Count)[]
+    {
+        ("All", "All", Model.TotalCount),
+        ("Pending", "Pending", Model.PendingCount),
+        ("Completed", "Completed", Model.CompletedCount),
+        ("Returned", "Returned", Model.ReturnedCount),
+        ("Cancelled", "Cancelled", Model.CancelledCount)
+    };
+    var active = string.IsNullOrWhiteSpace(Model.Status) ? "All" : Model.Status;
+}
+
+<h1>Adoptions</h1>
+
+<nav class="status-tabs mt-3" aria-label="Filter by status">
+    @foreach (var t in tabs)
+    {
+        <a class="status-tab @(t.Key == active ? "is-active" : null)"
+           asp-area="Admin" asp-controller="Adoptions" asp-action="Index"
+           asp-route-status="@(t.Key == "All" ? null : t.Key)">
+            @t.Label <span class="status-tab-count">@t.Count</span>
+        </a>
+    }
+</nav>
+
+@if (Model.Adoptions.Count > 0)
+{
+    <div class="table-wrap mt-3">
+        <table class="data">
+            <thead>
+                <tr>
+                    <th>Pet</th>
+                    <th>Adopter</th>
+                    <th>Applied</th>
+                    <th>Status</th>
+                    <th>Fee</th>
+                    <th class="actions-col">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var a in Model.Adoptions)
+                {
+                    <tr>
+                        <td><partial name="_PetThumbLink" model="a.Pet" /></td>
+                        <td>
+                            <a asp-area="Admin" asp-controller="Adopters" asp-action="Details" asp-route-id="@a.AdopterId">
+                                @a.Adopter?.FullName
+                            </a>
+                        </td>
+                        <td>@a.ApplicationDate.ToString("MMM d, yyyy")</td>
+                        <td><span class="badge badge-@a.Status.ToLower()">@a.Status</span></td>
+                        <td>
+                            @if (a.Status == "Pending")
+                            {
+                                <form asp-area="Admin" asp-controller="Adoptions" asp-action="UpdateFee"
+                                      asp-route-id="@a.AdoptionId" method="post" class="inline-form fee-form">
+                                    <label class="visually-hidden" for="editfee-@a.AdoptionId">Adoption fee</label>
+                                    <input type="number" id="editfee-@a.AdoptionId" name="fee" min="0" step="0.01"
+                                           value="@(a.AdoptionFee ?? 2000)" class="fee-input" aria-label="Adoption fee" />
+                                    <button type="submit" class="btn btn-secondary btn-sm">Save</button>
+                                </form>
+                            }
+                            else
+                            {
+                                @(a.AdoptionFee?.ToString("C") ?? "—")
+                            }
+                        </td>
+                        <td class="actions-cell">
+                            @if (a.Status == "Pending")
+                            {
+                                <form asp-area="Admin" asp-controller="Adoptions" asp-action="Approve"
+                                      asp-route-id="@a.AdoptionId" method="post" class="inline-form">
+                                    <input type="hidden" name="fee" value="@(a.AdoptionFee ?? 2000)" />
+                                    <button type="submit" class="btn btn-primary btn-sm">Approve</button>
+                                </form>
+                                <form asp-area="Admin" asp-controller="Adoptions" asp-action="Reject"
+                                      asp-route-id="@a.AdoptionId" method="post" class="inline-form"
+                                      data-confirm="Reject this application?" data-confirm-title="Reject application?" data-confirm-ok="Reject">
+                                    <button type="submit" class="btn btn-danger btn-sm">Reject</button>
+                                </form>
+                            }
+                            else if (a.Status == "Completed")
+                            {
+                                <form asp-area="Admin" asp-controller="Adoptions" asp-action="Return"
+                                      asp-route-id="@a.AdoptionId" method="post" class="inline-form"
+                                      data-confirm="Mark this adoption as returned? The pet becomes available again." data-confirm-title="Mark as returned?" data-confirm-ok="Mark returned">
+                                    <button type="submit" class="btn btn-secondary btn-sm">Mark returned</button>
+                                </form>
+                            }
+                            <form asp-area="Admin" asp-controller="Adoptions" asp-action="Delete"
+                                  asp-route-id="@a.AdoptionId" method="post" class="inline-form"
+                                  data-confirm="Permanently delete this adoption record? This cannot be undone." data-confirm-title="Delete adoption record?">
+                                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+else
+{
+    <div class="empty-state">
+        <p>No adoptions match this filter.</p>
+    </div>
+}

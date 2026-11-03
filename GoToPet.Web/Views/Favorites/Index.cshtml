@@ -1,0 +1,77 @@
+@model List<GoToPet.Web.Models.Favorite>
+@{
+    ViewData["Title"] = "My Favorites";
+}
+
+<div class="section">
+    <h1>My favorites</h1>
+
+    @if (Model.Count == 0)
+    {
+        <div class="empty-state">
+            <div class="empty-glyph" aria-hidden="true"><partial name="_Glyph" model='"heart"' /></div>
+            <h3>No favorites yet</h3>
+            <p>When you find a pet you love, tap the heart on their profile to save them here.</p>
+            <a class="btn btn-primary" asp-controller="Pets" asp-action="Index">Browse pets</a>
+        </div>
+    }
+    else
+    {
+        <p class="muted">@Model.Count saved pet@(Model.Count == 1 ? "" : "s")</p>
+        <div class="fav-list">
+            @foreach (var fav in Model)
+            {
+                var pet = fav.Pet!;
+                var glyph = pet.Species.ToLower() switch
+                {
+                    "dog" => "dog",
+                    "cat" => "cat",
+                    "rabbit" => "rabbit",
+                    "bird" => "bird",
+                    _ => "heart"
+                };
+                <article class="card fav-item">
+                    <a class="fav-photo" asp-controller="Pets" asp-action="Details" asp-route-id="@pet.PetId"
+                       aria-label="View details for @pet.PetName">
+                        @if (!string.IsNullOrEmpty(pet.PhotoUrl))
+                        {
+                            <img src="@pet.PhotoUrl" alt="@pet.PetName, a @pet.Breed @pet.Species" loading="lazy" />
+                        }
+                        else
+                        {
+                            <span class="fav-photo-placeholder" aria-hidden="true"><partial name="_Glyph" model="glyph" /></span>
+                        }
+                    </a>
+
+                    <div class="fav-body">
+                        <div class="fav-head">
+                            <div>
+                                <h3 class="mb-0">
+                                    <a asp-controller="Pets" asp-action="Details" asp-route-id="@pet.PetId">@pet.PetName</a>
+                                    <span class="badge badge-@pet.Status.ToLower().Replace(" ", "-")">@pet.Status</span>
+                                </h3>
+                                <p class="muted text-sm mb-0 mt-1">
+                                    @pet.Breed &middot; @pet.Age &middot; saved @fav.DateAdded.ToString("MMM d, yyyy")
+                                </p>
+                            </div>
+                            <form asp-action="Remove" method="post" class="inline-form">
+                                <input type="hidden" name="id" value="@fav.FavoriteId" />
+                                <button type="submit" class="btn btn-secondary btn-sm">Remove</button>
+                            </form>
+                        </div>
+
+                        <form asp-action="UpdateNotes" method="post" class="fav-notes mt-3">
+                            <input type="hidden" name="id" value="@fav.FavoriteId" />
+                            <div class="form-group">
+                                <label class="form-label" for="notes-@fav.FavoriteId">My notes</label>
+                                <textarea id="notes-@fav.FavoriteId" name="notes"
+                                          placeholder="Why did @pet.PetName catch your eye?">@fav.Notes</textarea>
+                            </div>
+                            <button type="submit" class="btn btn-secondary btn-sm">Save note</button>
+                        </form>
+                    </div>
+                </article>
+            }
+        </div>
+    }
+</div>
