@@ -5,9 +5,9 @@ using GoToPet.Web.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var phCulture = new CultureInfo("en-PH");
-CultureInfo.DefaultThreadCurrentCulture = phCulture;
-CultureInfo.DefaultThreadCurrentUICulture = phCulture;
+var usCulture = new CultureInfo("en-US");
+CultureInfo.DefaultThreadCurrentCulture = usCulture;
+CultureInfo.DefaultThreadCurrentUICulture = usCulture;
 
 builder.Services.AddControllersWithViews();
 
